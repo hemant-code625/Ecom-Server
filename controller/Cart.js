@@ -13,7 +13,7 @@ export const AddToCart = async (req,res) => {
 export const FetchCartByUserId = async(req,res) => {
     const {userId} = req.querry;
     try{
-        const cartItems = await Cart.find({user:userId}).populate('user').populate('product');
+        const cartItems = await Cart.find({user:user._id}).populate('user').populate('product');
         res.status(200).json(cartItems);
     }catch(error){
         res.status(400).json(error);

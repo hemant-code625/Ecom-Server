@@ -3,11 +3,12 @@ import mongoose, { Schema } from "mongoose";
 
 const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  role: { type: String, required: true, default: "user" },
+  password: { type: String},
+  picture: { type: String },
+  googleId: { type: Number },
+  role: { type: String, default: "user" },
   addresses: { type:[Schema.Types.Mixed]},
-  // TODO:  We can make a separate Schema for this
-  name: { type: String },
+  name: { type: String, required: true },
   orders: { type: [Schema.Types.Mixed] },
 });
 

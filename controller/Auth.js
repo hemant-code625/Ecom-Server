@@ -1,76 +1,85 @@
 import User from "../models/Users.js";
-import bcrypt from 'bcrypt';
+import bcrypt from "bcrypt";
 // const { sanitizeUser, sendMail } = require('../services/common');
-import jwt from 'jsonwebtoken';
+import jwt from "jsonwebtoken";
 
-export const createUser = async (req, res) => {
-  try {
-    const {name, email,picture, addresses, role, password, googleId} = req.body;
-    if(googleId){
-      // continue with google auth
-      const user = new User({
-        name,
-        email,
-        picture,
-        addresses:[],
-        role: "user",
-        googleId
-      });
-      await user.save();
-      res.json(user);
-    }else {
-      // continue with normal auth
-      const hashedPassword = await bcrypt.hash(password, 10);
-      const user = new User({
-        name,
-        email,
-        addresses:[],
-        password: hashedPassword,
-        role: "user",   // default role is user
-      });
-      await user.save();
-      res.json(user);
-    } 
-    
-  } catch (err) {
-    res.status(400).json(err);
+
+export const handleGoogleAuth = async (req, res) => {
+
+  const { userData } = req.body;
+  const googleId = userData.googleId;
+  const user = await User.findOne({ googleId });
+
+  if(user){
+
+    return res.status(200).json(user);
+
+  }else{
+
+    const name = userData.name;
+    const email = userData.email;
+    const picture = userData.picture;
+    const googleId = userData.googleId;
+    const user = new User({
+      name,
+      email,
+      addresses: [],
+      picture,
+      googleId,
+      role: "user",  // default role is user
+    });
+
+    await user.save();
+    return res.status(200).json(user);
   }
+}
+export const createUser = async (req, res) => {
+  const { userData } = req.body;
+  const name = userData.name;
+  const email = userData.email;
+  const password = userData.password || googleId;
+  const picture = userData.picture;
+  const hashedPassword = await bcrypt.hash(password, 10);
+    const user = new User({
+      name,
+      email,
+      addresses: [],
+      picture,
+      password: hashedPassword,
+      role: "user", // default role is user
+    });
+    await user.save();
+    res.json(user);
 };
 
 export const loginUser = async (req, res) => {
-  // const user = req.user;
-  const { email, password , googleId} = req.body;
-  if(googleId){
-    // continue login with google 
-    const user = await User.findOne({ googleId });
-    if(user){
-      return user;
-    }
-
-  }else {
-    // continue login with normal auth
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res
-        .status(400)
-        .json({ message: "Email or password is incorrect" });
-    }
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      return res
-        .status(400)
-        .json({ message: "Email or password is incorrect" });
-    }
-    const token = jwt.sign({ id: user._id }, `${process.env._SecretToken}`);
-    res.json({ token, userID: user._id });
-
+  const { email, password, isGoogleUser } = req.body;
+  const user = await User.findOne({ email });
+  if (!user && isGoogleUser) {
+    return res.status(403).json({ message: "User does not Exists!" });
   }
-  
+  const isPasswordValid = await bcrypt.compare(password, user.password);
+  if (!isPasswordValid) {
+    return res.status(400).json({ message: "Email or password is incorrect" });
+  }
+  const token = jwt.sign(
+    { id: user._id, name: user.name },
+    `${process.env._SecretToken}`
+  );
+  res.json({
+    token
+    // user: {
+    //   id: user._id,
+    //   name: user.name,
+    //   email: user.email,
+    //   picture: user.picture || "",
+    //   addresses: user.addresses,
+    //   role: user.role,
+    // },
+  });
 };
 
-export const logout = async (req, res) => {
-  
-};
+export const logout = async (req, res) => {};
 export const verifyToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (authHeader) {
