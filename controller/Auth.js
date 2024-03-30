@@ -63,8 +63,15 @@ export const loginUser = async (req, res) => {
   if (!isPasswordValid) {
     return res.status(400).json({ message: "Email or password is incorrect" });
   }
-  const token = jwt.sign(
-    {user},
+  const token = jwt.sign(                      // we need to send order history by api else token size will be too large
+    {user:{
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      picture: user.picture || "",
+      addresses: user.addresses,
+      role: user.role,
+    }},
     `${process.env._SecretToken}`
   );
   res.json({
