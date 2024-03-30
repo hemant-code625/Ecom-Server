@@ -53,17 +53,18 @@ export const createUser = async (req, res) => {
 };
 
 export const loginUser = async (req, res) => {
-  const { email, password, isGoogleUser } = req.body;
+  const { email, password } = req.body;
   const user = await User.findOne({ email });
-  if (!user && isGoogleUser) {
-    return res.status(403).json({ message: "User does not Exists!" });
+  if (!user) {
+    return res.status(400).json({ message: "Email or password is incorrect" });
   }
   const isPasswordValid = await bcrypt.compare(password, user.password);
+
   if (!isPasswordValid) {
     return res.status(400).json({ message: "Email or password is incorrect" });
   }
   const token = jwt.sign(
-    { id: user._id, name: user.name },
+    {user},
     `${process.env._SecretToken}`
   );
   res.json({
